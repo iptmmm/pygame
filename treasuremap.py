@@ -23,34 +23,19 @@ GROUND_Y = 600
 MAX_JUMPS = 2
 
 platforms = [
-    # pygame.Rect(0, 600, 1400, 200),
-    pygame.Rect(715, 500, 200, 30),
-    pygame.Rect(1115, 475, 200, 30),
-    pygame.Rect(630, 100, 50, 800),
-    pygame.Rect(530, 475, 100, 20),
-    pygame.Rect(425, 230, 100, 20),
-#ซ้าย
-    pygame.Rect(50, 550, 300, 20),
-    pygame.Rect(350, 100, 20, 800),
-    pygame.Rect(50, 400, 215, 20),
+    pygame.Rect(100, 400, 200, 30), 
+    pygame.Rect(100, 200, 200, 30), 
+    pygame.Rect(750, 150, 200, 30), 
+    pygame.Rect(750, 150, 50, 700), 
 ]
-
-
+platforms_speeds = [3, 8, 8,0]
+platforms_ranges = [(100, 550), (100, 550), (750, 750),(750, 750)]
 
 ### Function ###
 def drawplayer(x, y, w, h):
     """เขียนตัวละคร"""
     pygame.draw.rect(screen, (35, 161, 81), (x, y, w, h))
     
-# def move_left_right(x, keys, spd):
-#     """เดินซ้ายขวา แล้วส่งตำแหน่ง x ใหม่กลับ"""
-#     spd = 10 if keys[pygame.K_LSHIFT] else 5
-#     if keys[pygame.K_d]:
-#         x += spd
-#     if keys[pygame.K_a]:
-#         x -= spd
-#     return x
-
 def keep_in_screen(x, w, screen_width):
     """กันตัวละครหลุดขอบจอ"""
     if x < 0:
@@ -66,21 +51,17 @@ def draw_platforms(plat_list):
     for plat in plat_list:
         pygame.draw.rect(screen, (0, 255, 100), plat)
 
-# def check_platform_collision(x ,y, w, h, velocity_y, jump_count, on_ground, plat_list):
-#     player_rect = pygame.Rect(x, y, w, h)
-#     for plat in plat_list:
-#         if player_rect.colliderect(plat):
-#             # --
-#             if velocity_y > 0:
-#                 y = plat.top - h
-#                 velocity_y = 0
-#                 on_ground = True
-#                 jump_count = 0
-#             elif velocity_y < 0:
-#                 y = plat.bottom
-#                 velocity_y = 0
-#             # --
-#     return y, velocity_y, jump_count, on_ground
+def move_platforms(plat_list, speeds, ranges):
+    for i in range(len(plat_list)):
+        plat_list[i].x += speeds[i]
+        left_limit, right_limit = ranges[i]
+        if plat_list[i].left < left_limit:
+            plat_list[i].left = left_limit
+            speeds[i] = -speeds[i]
+        if plat_list[i].right > right_limit:
+            plat_list[i].right = right_limit
+            speeds[i] = -speeds[i]
+    return speeds
 
 def move_x_and_collide(x, y, w, h, keys, plat_list):
     spd = 10 if keys[pygame.K_LSHIFT] else 5
@@ -98,31 +79,45 @@ def move_x_and_collide(x, y, w, h, keys, plat_list):
                 x = plat.left - w
             elif dx < 0:
                 x= plat.right
+
+            else:
+                if player_rect.centerx < plat.centerx:
+                    x = plat.left - w
+                else:
+                    x = plat.right
     return x
 
 def move_y_and_collide(x, y, w, h, velocity_y, jump_count, on_ground, plat_list):
+    old_top = y
+    old_bottom = y + h
+    
     velocity_y += gravity
     y += velocity_y
 
     on_ground = False
-    player_rect = pygame.Rect(x, y, w, h)
-    for plat in plat_list:
-        if player_rect.colliderect(plat):
-            if velocity_y > 0:
-                y = plat.top - h 
-                velocity_y = 0
-                on_ground = True
-                jump_count = 0
-            elif velocity_y < 0:
-                y = plat.bottom
-                velocity_y = 0
+    standing_on = -1
+    
+    for i in range(len(plat_list)):
+        plat = plat_list[i]
+        overlap_x = x + w > plat.left and x < plat.right
+        if not overlap_x:
+            continue
+        if velocity_y >= 0 and old_bottom <= plat.top and y + h >= plat.top :
+            y = plat.top - h 
+            velocity_y = 0
+            on_ground = True
+            jump_count = 0
+            standing_on = i
+        elif velocity_y < 0 and old_top >= plat.bottom and y <= plat.bottom:
+            y = plat.bottom
+            velocity_y = 0
 
     if y >= GROUND_Y:
         y = GROUND_Y
         velocity_y = 0
         on_ground = True
         jump_count = 0
-    return y, velocity_y, jump_count, on_ground
+    return y, velocity_y, jump_count, on_ground, standing_on
 
 def jump(velocity_y, jump_count, on_ground):
     if jump_count < MAX_JUMPS:
@@ -131,16 +126,7 @@ def jump(velocity_y, jump_count, on_ground):
         on_ground = False
     return velocity_y, jump_count, on_ground
 
-def apply_gravity(y, velocity_y, jump_count, on_ground):
-    velocity_y += gravity
-    y += velocity_y
-    if y >= GROUND_Y:
-        y = GROUND_Y
-        velocity_y = 0
-        on_ground = True
-        jump_count = 0
-    return y, velocity_y, jump_count, on_ground
-
+standing_on = -1 
 running = True
 while running:
     for event in pygame.event.get():
@@ -153,11 +139,14 @@ while running:
               
     keys = pygame.key.get_pressed()
     
-    # player_x = move_left_right(player_x, keys, speed)
-    # player_y, velocity_y, jump_count, on_ground = apply_gravity(player_y, velocity_y, jump_count, on_ground)
-    # player_y, velocity_y, jump_count, on_ground = check_platform_collision(player_x, player_y, player_w, player_h, velocity_y, jump_count, on_ground, platforms)
+    old_plat_x = [plat.x for plat in platforms]
+    platforms_speeds = move_platforms(platforms, platforms_speeds, platforms_ranges)
+    if standing_on != -1:
+        player_x += platforms[standing_on].x - old_plat_x[standing_on]
     player_x = move_x_and_collide(player_x, player_y, player_w, player_h, keys, platforms)
-    player_y, velocity_y, jump_count, on_ground = move_y_and_collide(player_x, player_y, player_w, player_h, velocity_y, jump_count, on_ground, platforms)
+    player_y, velocity_y, jump_count, on_ground, standing_on  = move_y_and_collide(player_x, player_y, player_w, player_h, velocity_y, jump_count, on_ground, platforms)
+    
+    
     player_x = keep_in_screen(player_x, player_w, 1400)
 
     screen.fill((201, 255, 255))
@@ -168,5 +157,4 @@ while running:
     clock.tick(60)
 
 pygame.quit()
-
 

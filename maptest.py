@@ -94,14 +94,11 @@ def move_y_and_collide(x, y, w, h, velocity_y, jump_count, on_ground, plat_list)
     on_ground = False
     standing_on = -1
     
-    # player_rect = pygame.Rect(x, y, w, h)
-    # for plat in plat_list:
     for i in range(len(plat_list)):
         plat = plat_list[i]
         overlap_x = x + w > plat.left and x < plat.right
         if not overlap_x:
             continue
-        # if player_rect.colliderect(plat):
         if velocity_y >= 0 and old_bottom <= plat.top and y + h >= plat.top :
             y = plat.top - h 
             velocity_y = 0
@@ -142,7 +139,6 @@ while running:
     old_plat_x = [plat.x for plat in platforms]
     platforms_speeds = move_platforms(platforms, platforms_speeds, platforms_ranges)
     if standing_on != -1:
-        # player_x += platforms_speeds[standing_on]
         player_x += platforms[standing_on].x - old_plat_x[standing_on]
     player_x = move_x_and_collide(player_x, player_y, player_w, player_h, keys, platforms)
     player_y, velocity_y, jump_count, on_ground, standing_on  = move_y_and_collide(player_x, player_y, player_w, player_h, velocity_y, jump_count, on_ground, platforms)
