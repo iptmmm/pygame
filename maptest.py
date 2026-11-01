@@ -76,28 +76,41 @@ def move_x_and_collide(x, y, w, h, keys, plat_list):
                 x = plat.left - w
             elif dx < 0:
                 x= plat.right
+
+            else:
+                if player_rect.centerx < plat.centerx:
+                    x = plat.left - w
+                else:
+                    x = plat.right
     return x
 
 def move_y_and_collide(x, y, w, h, velocity_y, jump_count, on_ground, plat_list):
+    old_top = y
+    old_bottom = y + h
+    
     velocity_y += gravity
     y += velocity_y
 
     on_ground = False
     standing_on = -1
-    player_rect = pygame.Rect(x, y, w, h)
+    
+    # player_rect = pygame.Rect(x, y, w, h)
     # for plat in plat_list:
     for i in range(len(plat_list)):
         plat = plat_list[i]
-        if player_rect.colliderect(plat):
-            if velocity_y > 0:
-                y = plat.top - h 
-                velocity_y = 0
-                on_ground = True
-                jump_count = 0
-                standing_on = i
-            elif velocity_y < 0:
-                y = plat.bottom
-                velocity_y = 0
+        overlap_x = x + w > plat.left and x < plat.right
+        if not overlap_x:
+            continue
+        # if player_rect.colliderect(plat):
+        if velocity_y >= 0 and old_bottom <= plat.top and y + h >= plat.top :
+            y = plat.top - h 
+            velocity_y = 0
+            on_ground = True
+            jump_count = 0
+            standing_on = i
+        elif velocity_y < 0 and old_top >= plat.bottom and y <= plat.bottom:
+            y = plat.bottom
+            velocity_y = 0
 
     if y >= GROUND_Y:
         y = GROUND_Y
@@ -126,9 +139,11 @@ while running:
               
     keys = pygame.key.get_pressed()
     
+    old_plat_x = [plat.x for plat in platforms]
     platforms_speeds = move_platforms(platforms, platforms_speeds, platforms_ranges)
     if standing_on != -1:
-        player_x += platforms_speeds[standing_on]
+        # player_x += platforms_speeds[standing_on]
+        player_x += platforms[standing_on].x - old_plat_x[standing_on]
     player_x = move_x_and_collide(player_x, player_y, player_w, player_h, keys, platforms)
     player_y, velocity_y, jump_count, on_ground, standing_on  = move_y_and_collide(player_x, player_y, player_w, player_h, velocity_y, jump_count, on_ground, platforms)
     
