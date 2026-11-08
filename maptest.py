@@ -154,3 +154,6 @@ while running:
     clock.tick(60)
 
 pygame.quit()
+
+# platforms_speeds = [3, 8, 8,0]
+# platforms_ranges = [(100, 550), (100, 550), (750, 750),(750, 750)]
