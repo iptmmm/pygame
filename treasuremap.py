@@ -152,7 +152,7 @@ while running:
                 velocity_y, jump_count, on_ground = jump(velocity_y, jump_count, on_ground)
               
     keys = pygame.key.get_pressed()
-    
+        
     # old_plat_x = [plat.x for plat in platforms]
     old_plat_y = [plat.y for plat in platforms]
     platforms_speeds = move_platforms_y(platforms, platforms_speeds_y, platforms_ranges_y)
