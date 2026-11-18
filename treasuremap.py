@@ -24,7 +24,7 @@ MAX_JUMPS = 2
 
 platforms = [
     pygame.Rect(100, 400, 200, 30), 
-    # pygame.Rect(100, 200, 200, 30), 
+    pygame.Rect(400, 400,200, 30), 
     # pygame.Rect(750, 150, 200, 30), 
     # pygame.Rect(750, 150, 50, 700), 
 ]
@@ -83,25 +83,38 @@ def move_x_and_collide(x, y, w, h, keys, plat_list):
         dx += spd
     if keys[pygame.K_a]:
         dx -= spd
-    
+    # ------------------------
+    if dx == 0:
+        return x
+
+    old_rect = pygame.Rect(x, y, w, h)
+    # ------------------------
+
     x += dx
     player_rect = pygame.Rect(x, y, w, h)
     for plat in plat_list:
+        # ------------------------
+        if old_rect.colliderect(plat):
+            continue
+        # ------------------------
         if player_rect.colliderect(plat):
             if dx > 0:
                 x = plat.left - w
-            elif dx < 0:
+            else:
                 x= plat.right
 
-            else:
-                if player_rect.centerx < plat.centerx:
-                    x = plat.left - w
-                else:
-                    x = plat.right
+            # elif dx < 0:
+            #     x= plat.right
+
+            # else:
+            #     if player_rect.centerx < plat.centerx:
+            #         x = plat.left - w
+            #     else:
+            #         x = plat.right
     return x
 
 
-def move_y_and_collide(x, y, w, h, velocity_y, jump_count, on_ground, plat_list):
+def move_y_and_collide(x, y, w, h, velocity_y, jump_count, on_ground, plat_list, plat_dy):
     old_top = y
     old_bottom = y + h
     
@@ -116,16 +129,28 @@ def move_y_and_collide(x, y, w, h, velocity_y, jump_count, on_ground, plat_list)
         overlap_x = x + w > plat.left and x < plat.right
         if not overlap_x:
             continue
-        if velocity_y >= 0 and old_bottom <= plat.top and y + h >= plat.top :
+
+        old_plat_top = plat.top - plat_dy[i]
+        old_plat_bottom = plat.bottom - plat_dy[i]
+
+        # if velocity_y >= 0 and old_bottom <= plat.top and y + h >= plat.top :
+        #     y = plat.top - h 
+        #     velocity_y = 0
+        #     on_ground = True
+        #     jump_count = 0
+        #     standing_on = i
+        # elif velocity_y < 0 and old_top >= plat.bottom and y <= plat.bottom:
+        #     y = plat.bottom
+        #     velocity_y = 0
+        if old_bottom <= max(plat.top, old_plat_top) and y + h >= plat.top:
             y = plat.top - h 
             velocity_y = 0
             on_ground = True
             jump_count = 0
             standing_on = i
-        elif velocity_y < 0 and old_top >= plat.bottom and y <= plat.bottom:
+        elif old_top >= min(plat.bottom, old_plat_bottom) and y < plat.bottom:
             y = plat.bottom
-            velocity_y = 0
-
+            velocity_y = max(0, plat_dy[i])
     if y >= GROUND_Y:
         y = GROUND_Y
         velocity_y = 0
@@ -158,10 +183,15 @@ while running:
     platforms_speeds = move_platforms_y(platforms, platforms_speeds_y, platforms_ranges_y)
     # if standing_on != -1:
     #     player_x += platforms[standing_on].x - old_plat_x[standing_on]
+
+    # ------------------------
+    plat_dy = [platforms[i].y - old_plat_y[i] for i in range(len(platforms))]
+    # ------------------------
     if standing_on != -1:
-        player_y += platforms[standing_on].y - old_plat_y[standing_on]
+        # player_y += platforms[standing_on].y - old_plat_y[standing_on]
+        player_y += plat_dy[standing_on]
     player_x = move_x_and_collide(player_x, player_y, player_w, player_h, keys, platforms)
-    player_y, velocity_y, jump_count, on_ground, standing_on  = move_y_and_collide(player_x, player_y, player_w, player_h, velocity_y, jump_count, on_ground, platforms)
+    player_y, velocity_y, jump_count, on_ground, standing_on  = move_y_and_collide(player_x, player_y, player_w, player_h, velocity_y, jump_count, on_ground, platforms, plat_dy)
     
     
     player_x = keep_in_screen(player_x, player_w, 1400)
